@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Echoes of the Past — Hieroglyphic Translator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════════ */
+:root {
+  --bg:        #0d0b08;
+  --bg2:       #13110d;
+  --bg3:       #1a1610;
+  --surface:   #221d15;
+  --surface2:  #2c2518;
+  --border:    rgba(200,150,42,.18);
+  --border2:   rgba(200,150,42,.32);
+  --gold:      #c8962a;
+  --gold-l:    #e8b84a;
+  --gold-p:    rgba(200,150,42,.08);
+  --lapis:     #3a6ea8;
+  --lapis-l:   #5a8ec8;
+  --lapis-p:   rgba(58,110,168,.12);
+  --stone:     #8a7a60;
+  --stone-l:   #b09a78;
+  --text:      #f0e8d6;
+  --text-m:    #a89880;
+  --text-d:    #6a5a44;
+  --red:       #c04030;
+  --green:     #4a9060;
+  --r:         6px;
+  --r2:        12px;
+  --r3:        20px;
+}
+
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════ */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
+html { scroll-behavior:smooth }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 16px;
+  line-height: 1.65;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Sand-grain texture overlay */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:0;
+}
+
+/* Ambient glow orbs */
+body::after {
+  content:'';
+  position:fixed;
+  width:600px; height:600px;
+  top:-200px; left:-200px;
+  background: radial-gradient(ellipse, rgba(200,150,42,.05) 0%, transparent 70%);
+  pointer-events:none; z-index:0;
+  animation: orbDrift 20s ease-in-out infinite alternate;
+}
+
+@keyframes orbDrift {
+  from { transform: translate(0,0) }
+  to   { transform: translate(120px, 80px) }
+}
+
+/* ═══════════════════════════════════════════════
+   FLOATING GLYPHS (background ambience)
+═══════════════════════════════════════════════ */
+#ambient-glyphs {
+  position:fixed; inset:0; pointer-events:none; z-index:1; overflow:hidden;
+}
+.ag {
+  position:absolute;
+  font-size: clamp(18px, 3vw, 36px);
+  color: var(--gold);
+  opacity: 0;
+  animation: agFloat linear infinite;
+  user-select:none;
+}
+@keyframes agFloat {
+  0%   { opacity:0; transform:translateY(0) rotate(0deg) }
+  10%  { opacity:.12 }
+  80%  { opacity:.06 }
+  100% { opacity:0; transform:translateY(-100vh) rotate(20deg) }
+}
+
+/* ═══════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════ */
+.wrap {
+  position:relative; z-index:2;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 20px 80px;
+}
+
+/* ═══════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════ */
+header {
+  text-align: center;
+  padding: 56px 20px 40px;
+  position: relative;
+}
+
+.logo-seal {
+  width: 72px; height: 72px;
+  margin: 0 auto 20px;
+  display: block;
+  animation: sealPulse 5s ease-in-out infinite;
+}
+@keyframes sealPulse {
+  0%,100% { transform: scale(1) rotate(-1deg); filter: drop-shadow(0 0 0 rgba(200,150,42,0)) }
+  50%     { transform: scale(1.04) rotate(1deg); filter: drop-shadow(0 0 14px rgba(200,150,42,.35)) }
+}
+
+.site-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(1.8rem, 5.5vw, 3.2rem);
+  font-weight: 700;
+  letter-spacing: .06em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #e8b84a 0%, #c8962a 40%, #e8d090 70%, #c8962a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.site-tag {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: .68rem;
+  letter-spacing: .38em;
+  text-transform: uppercase;
+  color: var(--stone-l);
+  margin-top: 8px;
+}
+
+.header-desc {
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--text-m);
+  margin-top: 12px;
+  max-width: 440px;
+  margin-inline: auto;
+}
+
+.divider-rule {
+  display: flex; align-items: center; gap: 12px;
+  margin: 24px auto 0; max-width: 320px;
+}
+.divider-rule span { flex:1; height:1px; background: linear-gradient(90deg,transparent,var(--border2),transparent) }
+.rule-gem { display:flex; gap:8px; align-items:center }
+.rule-gem svg { animation: gemSpin 8s linear infinite }
+.rule-gem svg:nth-child(2) { animation-direction:reverse; animation-duration:12s }
+
+@keyframes gemSpin { to { transform:rotate(360deg) } }
+
+/* ═══════════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  padding: 28px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content:'';
+  position:absolute; inset:0;
+  background: linear-gradient(135deg, rgba(200,150,42,.04) 0%, transparent 60%);
+  pointer-events:none;
+}
+.card-title {
+  font-family: 'Cinzel', serif;
+  font-size: .72rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 18px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title svg { animation: titleWiggle 4s ease-in-out infinite }
+@keyframes titleWiggle {
+  0%,100%{ transform:rotate(0) } 30%{ transform:rotate(-8deg) } 70%{ transform:rotate(8deg) }
+}
+
+/* ═══════════════════════════════════════════════
+   UPLOAD ZONE
+═══════════════════════════════════════════════ */
+.upload-zone {
+  border: 2px dashed var(--border2);
+  border-radius: var(--r2);
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .3s ease;
+  position: relative;
+  background: rgba(200,150,42,.03);
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--gold-l);
+  background: var(--gold-p);
+}
+.upload-zone input[type=file] {
+  position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;
+}
+.uz-icon {
+  width:52px; height:52px;
+  margin: 0 auto 14px;
+  color: var(--stone);
+  transition: color .3s;
+  animation: uzFloat 3.5s ease-in-out infinite;
+}
+.upload-zone:hover .uz-icon { color: var(--gold) }
+@keyframes uzFloat {
+  0%,100%{ transform:translateY(0) }
+  50%{ transform:translateY(-10px) }
+}
+.uz-primary {
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  color: var(--text);
+  display: block;
+  margin-bottom: 6px;
+}
+.uz-secondary {
+  font-size: .9rem; font-style:italic; color: var(--text-m);
+}
+
+/* Action buttons row */
+.action-row {
+  display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; align-items:center;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items:center; gap:8px;
+  padding: .55rem 1.3rem;
+  border-radius: var(--r);
+  font-family: 'Cinzel', serif;
+  font-size: .72rem;
+  letter-spacing: .1em;
+  cursor: pointer;
+  transition: all .2s;
+  border: 1.5px solid;
+  text-decoration: none;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-m);
+  border-color: var(--border2);
+}
+.btn-ghost:hover { color:var(--text); border-color:var(--stone-l); background:rgba(255,255,255,.04) }
+
+.btn-gold {
+  background: var(--gold);
+  color: #0d0b08;
+  border-color: var(--gold-l);
+  font-size: .8rem;
+  padding: .7rem 1.8rem;
+  font-weight: 600;
+  position: relative; overflow:hidden;
+}
+.btn-gold::after {
+  content:'';
+  position:absolute; inset:0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+  transform: translateX(-100%);
+  transition: transform .5s;
+}
+.btn-gold:hover::after { transform:translateX(100%) }
+.btn-gold:hover { background:var(--gold-l) }
+.btn-gold:disabled { opacity:.45; cursor:not-allowed }
+.btn-gold:disabled::after { display:none }
+
+.btn-lapis {
+  background: var(--lapis);
+  color: var(--text);
+  border-color: var(--lapis-l);
+}
+.btn-lapis:hover { background:var(--lapis-l) }
+
+/* Language chips */
+.lang-row {
+  display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; align-items:center;
+}
+.lang-label { font-size:.88rem; font-style:italic; color:var(--text-m) }
+.chips { display:flex; gap:8px; flex-wrap:wrap }
+.chip {
+  padding: .28rem .85rem;
+  border: 1.5px solid var(--border2);
+  border-radius: 100px;
+  font-size: .78rem;
+  cursor: pointer;
+  transition: all .2s;
+  color: var(--text-m);
+  font-family: 'Crimson Pro', serif;
+}
+.chip:hover { border-color:var(--stone-l); color:var(--text) }
+.chip.active { background:var(--gold); color:#0d0b08; border-color:var(--gold-l); font-weight:600 }
+
+/* Preview */
+#preview-area { display:none; margin-top:18px }
+#preview-area.visible { display:block }
+.preview-wrap {
+  position:relative; display:inline-block;
+  border:1px solid var(--border2); border-radius:var(--r2); overflow:hidden;
+  max-width:100%;
+}
+#preview-img { display:block; max-height:260px; max-width:100%; object-fit:contain }
+.preview-rm {
+  position:absolute; top:8px; right:8px;
+  background:rgba(13,11,8,.8); color:var(--text-m);
+  border:none; border-radius:50%; width:26px; height:26px;
+  cursor:pointer; font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+  transition: color .2s;
+}
+.preview-rm:hover { color:var(--text) }
+.preview-meta { font-size:.82rem; color:var(--text-d); font-style:italic; margin-top:6px }
+
+/* Translate row */
+.translate-row {
+  margin-top: 22px;
+  display: flex; gap:12px; align-items:center; flex-wrap:wrap;
+}
+
+/* Error */
+.err-msg {
+  background: rgba(192,64,48,.12);
+  border:1px solid rgba(192,64,48,.35);
+  border-radius:var(--r);
+  padding:.65rem 1rem;
+  color:#e08070;
+  font-size:.9rem;
+  margin-top:12px;
+  display:none;
+}
+.err-msg.visible { display:flex; align-items:center; gap:8px }
+
+/* ═══════════════════════════════════════════════
+   LOADING STATE
+═══════════════════════════════════════════════ */
+#loading-card { display:none }
+#loading-card.visible { display:block }
+
+.loading-inner { text-align:center; padding:28px 16px }
+
+.scarab-anim {
+  width:64px; height:64px; margin:0 auto 16px; position:relative;
+}
+.scarab-anim svg { width:100%; height:100% }
+.s-body { animation: sSpin 2.5s linear infinite; transform-origin:32px 32px }
+.s-wl   { animation: sWL 1.4s ease-in-out infinite alternate; transform-origin:32px 32px }
+.s-wr   { animation: sWR 1.4s ease-in-out infinite alternate; transform-origin:32px 32px }
+.s-orb  { animation: sOrb 2.5s linear infinite reverse; transform-origin:32px 32px }
+@keyframes sSpin  { to { transform:rotate(360deg) } }
+@keyframes sWL    { from{transform:rotate(0)} to{transform:rotate(-28deg)} }
+@keyframes sWR    { from{transform:rotate(0)} to{transform:rotate(28deg)} }
+@keyframes sOrb   { to { transform:rotate(360deg) } }
+
+.loading-steps {
+  display: flex; gap:8px; justify-content:center; flex-wrap:wrap;
+  margin: 12px 0 0;
+}
+.ls { padding:.2rem .7rem; border:1px solid var(--border); border-radius:100px;
+      font-size:.75rem; color:var(--text-d); transition:all .4s; font-family:'Cinzel',serif }
+.ls.active { border-color:var(--gold); color:var(--gold); background:var(--gold-p) }
+.ls.done   { border-color:var(--green); color:var(--green) }
+
+.loading-status { font-size:1rem; font-style:italic; color:var(--text-m); margin-top:10px }
+
+/* ═══════════════════════════════════════════════
+   RESULT CARD
+═══════════════════════════════════════════════ */
+#result-card { display:none }
+#result-card.visible { display:block }
+
+/* Image comparison tabs */
+.img-tabs { display:flex; gap:4px; margin-bottom:12px }
+.img-tab {
+  padding:.28rem .9rem; border:1.5px solid var(--border); border-radius:100px;
+  font-size:.75rem; color:var(--text-d); cursor:pointer; transition:all .2s;
+  font-family:'Cinzel',serif;
+}
+.img-tab:hover { border-color:var(--stone); color:var(--text-m) }
+.img-tab.active { border-color:var(--gold); color:var(--gold); background:var(--gold-p) }
+
+.img-panel { display:none }
+.img-panel.active { display:block }
+.result-img {
+  width:100%; max-height:380px; object-fit:contain;
+  border-radius:var(--r2); border:1px solid var(--border);
+}
+
+/* Glyph grid */
+.glyph-grid {
+  display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;
+}
+.glyph-pill {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:.22rem .65rem;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:100px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:.72rem; color:var(--gold);
+  animation: pillAppear .4s ease backwards;
+}
+@keyframes pillAppear {
+  from { opacity:0; transform:translateY(6px) scale(.92) }
+  to   { opacity:1; transform:translateY(0) scale(1) }
+}
+.glyph-pill .gconf {
+  font-size:.65rem; color:var(--text-d);
+  font-family:'Crimson Pro',serif;
+}
+
+/* Row separators in glyph grid */
+.row-sep {
+  width:100%; height:1px;
+  background:linear-gradient(90deg,transparent,var(--border2),transparent);
+  margin:4px 0;
+  position:relative;
+}
+.row-sep::after {
+  content:'row break';
+  position:absolute; left:50%; transform:translateX(-50%) translateY(-50%);
+  font-size:.62rem; color:var(--text-d);
+  font-family:'Cinzel',serif; letter-spacing:.12em;
+  background:var(--surface); padding:0 8px;
+}
+
+/* Translation output */
+.translation-box {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-left:3px solid var(--gold);
+  border-radius:var(--r);
+  padding:18px 20px;
+  font-size:1.22rem;
+  line-height:1.85;
+  font-style:italic;
+  color:var(--text);
+  position:relative;
+  margin-top:6px;
+}
+.translation-box::before {
+  content:'"';
+  position:absolute; top:-12px; left:14px;
+  font-family:'Cinzel Decorative',serif;
+  font-size:2.5rem; color:var(--gold); opacity:.35; line-height:1;
+}
+
+/* Stats row */
+.stats-row {
+  display:flex; flex-wrap:wrap; gap:12px; margin-top:16px;
+}
+.stat-chip {
+  display:flex; align-items:center; gap:6px;
+  padding:.35rem .85rem;
+  background:var(--bg3); border:1px solid var(--border);
+  border-radius:var(--r); font-size:.82rem; color:var(--text-m);
+}
+.stat-chip strong { color:var(--gold); font-family:'Cinzel',serif; font-size:.8rem }
+
+/* Confidence bar */
+.conf-bar-wrap { margin-top:14px; display:flex; align-items:center; gap:10px }
+.conf-label { font-size:.8rem; color:var(--text-d); width:74px; font-family:'Cinzel',serif }
+.conf-bar { flex:1; height:5px; background:var(--surface2); border-radius:3px; overflow:hidden }
+.conf-fill {
+  height:100%;
+  background:linear-gradient(90deg, var(--gold), var(--lapis-l));
+  border-radius:3px; width:0; transition:width 1.4s cubic-bezier(.25,.46,.45,.94);
+}
+.conf-pct { font-size:.8rem; color:var(--lapis-l); font-family:'Cinzel',serif; min-width:34px }
+
+/* Glyph divider */
+.glyph-div { text-align:center; margin:16px 0; }
+.glyph-div span {
+  display:inline-block;
+  font-size:1.3rem; color:var(--text-d);
+  animation:gdBob 2.5s ease-in-out infinite;
+  margin:0 4px;
+}
+.glyph-div span:nth-child(1){ animation-delay:.0s }
+.glyph-div span:nth-child(2){ animation-delay:.2s }
+.glyph-div span:nth-child(3){ animation-delay:.4s }
+.glyph-div span:nth-child(4){ animation-delay:.6s }
+.glyph-div span:nth-child(5){ animation-delay:.8s }
+@keyframes gdBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+
+/* Result actions */
+.result-actions {
+  display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;
+}
+
+/* Copy btn */
+.copy-btn {
+  background:none; border:1px solid var(--border2); border-radius:var(--r);
+  padding:.28rem .7rem; cursor:pointer; font-size:.72rem; color:var(--text-d);
+  font-family:'Cinzel',serif; letter-spacing:.08em; transition:all .2s;
+}
+.copy-btn:hover { border-color:var(--gold); color:var(--gold) }
+
+/* ═══════════════════════════════════════════════
+   HOW IT WORKS
+═══════════════════════════════════════════════ */
+.steps-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-top:16px;
+}
+.step {
+  text-align:center; padding:16px 12px;
+  background:var(--bg2); border:1px solid var(--border); border-radius:var(--r2);
+  transition: border-color .3s;
+}
+.step:hover { border-color:var(--border2) }
+.step-num {
+  width:38px; height:38px;
+  border:1.5px solid var(--gold);
+  border-radius:50%;
+  margin:0 auto 10px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Cinzel',serif; font-size:.82rem; color:var(--gold);
+  animation:stepGlow 3s ease-in-out infinite;
+}
+.step:nth-child(1) .step-num { animation-delay:0s }
+.step:nth-child(2) .step-num { animation-delay:.6s }
+.step:nth-child(3) .step-num { animation-delay:1.2s }
+.step:nth-child(4) .step-num { animation-delay:1.8s }
+@keyframes stepGlow {
+  0%,100%{ box-shadow:0 0 0 0 rgba(200,150,42,0) }
+  50%{ box-shadow:0 0 0 6px rgba(200,150,42,.14) }
+}
+.step-icon {
+  width:28px; height:28px; margin:0 auto 8px; color:var(--stone);
+  animation:stepFloat 4s ease-in-out infinite;
+}
+.step:nth-child(1) .step-icon { animation-delay:0s }
+.step:nth-child(2) .step-icon { animation-delay:.8s }
+.step:nth-child(3) .step-icon { animation-delay:1.6s }
+.step:nth-child(4) .step-icon { animation-delay:2.4s }
+@keyframes stepFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+.step-title { font-family:'Cinzel',serif; font-size:.72rem; letter-spacing:.14em; color:var(--gold-l); margin-bottom:5px; text-transform:uppercase }
+.step-desc  { font-size:.88rem; font-style:italic; color:var(--text-m) }
+
+/* ═══════════════════════════════════════════════
+   CAMERA MODAL
+═══════════════════════════════════════════════ */
+.modal-bg {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.82);
+  z-index:100;
+  align-items:center; justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.modal-bg.open { display:flex }
+.modal-box {
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:var(--r2); padding:20px;
+  width:min(92vw, 520px);
+  position:relative;
+}
+.modal-title { font-family:'Cinzel',serif; font-size:.95rem; letter-spacing:.12em; color:var(--gold); margin-bottom:14px }
+#camera-video { width:100%; border-radius:var(--r); background:#000; display:block; min-height:200px }
+.modal-close {
+  position:absolute; top:12px; right:14px;
+  background:none; border:none; color:var(--text-m); cursor:pointer; font-size:1.1rem;
+  transition:color .2s;
+}
+.modal-close:hover { color:var(--text) }
+.modal-actions { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap }
+canvas#cam-canvas { display:none }
+
+/* ═══════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════ */
+footer {
+  text-align:center; padding:24px 16px;
+  border-top:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  font-size:.82rem; font-style:italic; color:var(--text-d);
+}
+.footer-gem { animation:footerSpin 10s linear infinite }
+.footer-gem:nth-child(1) { animation-direction:reverse }
+@keyframes footerSpin { to { transform:rotate(360deg) } }
+
+/* ═══════════════════════════════════════════════
+   MOBILE
+═══════════════════════════════════════════════ */
+@media (max-width:600px) {
+  header { padding:36px 16px 28px }
+  .card { padding:18px }
+  .action-row { gap:8px }
+  .btn { font-size:.68rem; padding:.5rem 1rem }
+  .btn-gold { padding:.65rem 1.3rem }
+  .translation-box { font-size:1.08rem; padding:14px 16px }
+  .steps-grid { grid-template-columns:1fr 1fr }
+  .stats-row { gap:8px }
+}
+@media (max-width:380px) {
+  .steps-grid { grid-template-columns:1fr }
+}
+</style>
+</head>
+<body>
+
+<!-- Ambient floating glyphs -->
+<div id="ambient-glyphs"></div>
+
+<!-- Camera canvas (hidden) -->
+<canvas id="cam-canvas"></canvas>
+
+<!-- ═══ CAMERA MODAL ═══ -->
+<div class="modal-bg" id="cam-modal">
+  <div class="modal-box">
+    <button class="modal-close" id="cam-close">✕</button>
+    <div class="modal-title">📷 &nbsp; Capture Inscription</div>
+    <video id="camera-video" autoplay playsinline></video>
+    <div class="modal-actions">
+      <button class="btn btn-gold" id="snap-btn">Take Photo</button>
+      <button class="btn btn-ghost" id="cam-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ═══ HEADER ═══ -->
+  <header>
+    <svg class="logo-seal" viewBox="0 0 72 72" fill="none">
+      <!-- Eye of Horus -->
+      <ellipse cx="36" cy="34" rx="30" ry="18" stroke="#c8962a" stroke-width="1.2" fill="none" opacity=".5"/>
+      <circle cx="36" cy="34" r="11" fill="#c8962a" opacity=".85"/>
+      <circle cx="36" cy="34" r="5.5" fill="#0d0b08"/>
+      <circle cx="36" cy="34" r="2.5" fill="#c8962a"/>
+      <path d="M10 34 Q22 22 36 34 Q50 46 62 34" stroke="#c8962a" stroke-width="1.2" fill="none"/>
+      <path d="M36 45 L32 58 M36 45 L40 58" stroke="#c8962a" stroke-width="1.1"/>
+      <path d="M36 45 L29 62" stroke="#c8962a" stroke-width=".8" opacity=".4"/>
+      <!-- Outer ring -->
+      <circle cx="36" cy="36" r="34" stroke="#c8962a" stroke-width=".6" fill="none" stroke-dasharray="3 3" opacity=".3"/>
+    </svg>
+
+    <h1 class="site-title">Echoes of the Past</h1>
+    <span class="site-tag">AI-Powered Hieroglyphic Translator</span>
+    <p class="header-desc">Upload or photograph Egyptian hieroglyphs — our trained model decodes them instantly.</p>
+
+    <div class="divider-rule">
+      <span></span>
+      <div class="rule-gem">
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <polygon points="6,1 7.2,4.8 11,4.8 8,7.2 9.2,11 6,8.8 2.8,11 4,7.2 1,4.8 4.8,4.8" fill="#c8962a" opacity=".6"/>
+        </svg>
+        <svg width="16" height="16" viewBox="0 0 16 16">
+          <ellipse cx="8" cy="8" rx="7" ry="4" stroke="#c8962a" stroke-width=".9" fill="none" opacity=".7"/>
+          <circle cx="8" cy="8" r="2.5" fill="#c8962a" opacity=".7"/>
+        </svg>
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <polygon points="6,1 7.2,4.8 11,4.8 8,7.2 9.2,11 6,8.8 2.8,11 4,7.2 1,4.8 4.8,4.8" fill="#c8962a" opacity=".6"/>
+        </svg>
+      </div>
+      <span></span>
+    </div>
+  </header>
+
+  <!-- ═══ UPLOAD CARD ═══ -->
+  <div class="card" id="upload-card">
+    <div class="card-title">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      Upload Your Inscription
+    </div>
+
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept="image/*"/>
+      <svg class="uz-icon" viewBox="0 0 52 52" fill="none">
+        <rect x="5" y="14" width="42" height="30" rx="3" stroke="currentColor" stroke-width="1.4"/>
+        <circle cx="37" cy="25" r="5" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M5 36 L18 24 L28 33 L34 27 L47 44" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M26 10 L26 2 M26 2 L21 7 M26 2 L31 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <span class="uz-primary">Drop your image here</span>
+      <span class="uz-secondary">or click to browse · JPG, PNG, HEIC, WebP</span>
+    </div>
+
+    <div class="action-row">
+      <button class="btn btn-ghost" id="cam-open-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        Open Camera
+      </button>
+    </div>
+
+    <div id="preview-area">
+      <div class="preview-wrap">
+        <img id="preview-img" src="" alt="Preview"/>
+        <button class="preview-rm" id="remove-btn" title="Remove">✕</button>
+      </div>
+      <p class="preview-meta" id="preview-meta"></p>
+    </div>
+
+    <div class="lang-row">
+      <span class="lang-label">Source:</span>
+      <div class="chips">
+        <div class="chip active" data-lang="hieroglyphic">Egyptian Hieroglyphic</div>
+        <div class="chip" data-lang="mixed">Mixed / Unknown</div>
+      </div>
+    </div>
+
+    <div class="err-msg" id="err-msg">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span id="err-text">Please upload an image before translating.</span>
+    </div>
+
+    <div class="translate-row">
+      <button class="btn btn-gold" id="translate-btn" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        Translate Inscription
+      </button>
+      <span style="font-size:.82rem;font-style:italic;color:var(--text-d)">YOLO + Transformer model</span>
+    </div>
+  </div>
+
+  <!-- ═══ LOADING CARD ═══ -->
+  <div class="card" id="loading-card">
+    <div class="loading-inner">
+      <!-- Animated scarab -->
+      <div class="scarab-anim">
+        <svg viewBox="0 0 64 64" fill="none">
+          <g class="s-orb">
+            <circle cx="32" cy="32" r="30" stroke="#c8962a" stroke-width=".7" fill="none" stroke-dasharray="5 4" opacity=".25"/>
+            <circle cx="32" cy="4" r="3" fill="#c8962a" opacity=".4"/>
+          </g>
+          <g class="s-wl">
+            <ellipse cx="16" cy="26" rx="13" ry="8" fill="#3a6ea8" opacity=".18"/>
+            <ellipse cx="16" cy="26" rx="10" ry="6" stroke="#3a6ea8" stroke-width="1" fill="none" opacity=".5"/>
+          </g>
+          <g class="s-wr">
+            <ellipse cx="48" cy="26" rx="13" ry="8" fill="#3a6ea8" opacity=".18"/>
+            <ellipse cx="48" cy="26" rx="10" ry="6" stroke="#3a6ea8" stroke-width="1" fill="none" opacity=".5"/>
+          </g>
+          <g class="s-body">
+            <circle cx="32" cy="32" r="11" fill="#c8962a" opacity=".88"/>
+            <circle cx="32" cy="32" r="5" fill="#0d0b08"/>
+            <circle cx="32" cy="32" r="2.2" fill="#c8962a"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="loading-steps">
+        <div class="ls" id="ls1">Upload</div>
+        <div class="ls" id="ls2">Detect</div>
+        <div class="ls" id="ls3">Order</div>
+        <div class="ls" id="ls4">Translate</div>
+      </div>
+
+      <p class="loading-status" id="loading-status">Sending to server…</p>
+    </div>
+  </div>
+
+  <!-- ═══ RESULT CARD ═══ -->
+  <div class="card" id="result-card">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:18px">
+      <div class="card-title" style="margin-bottom:0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        Results
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="result-badge" style="background:var(--lapis-p);border:1px solid var(--lapis);color:var(--lapis-l);padding:.22rem .7rem;border-radius:100px;font-size:.72rem;font-family:'Cinzel',serif">Hieroglyphic → English</span>
+        <button class="copy-btn" id="copy-btn">Copy</button>
+      </div>
+    </div>
+
+    <!-- Image tabs -->
+    <div class="img-tabs">
+      <div class="img-tab active" data-tab="overlay">Detection View</div>
+      <div class="img-tab" data-tab="original">Original</div>
+    </div>
+    <div class="img-panel active" id="tab-overlay">
+      <img class="result-img" id="overlay-img" src="" alt="Detection overlay"/>
+    </div>
+    <div class="img-panel" id="tab-original">
+      <img class="result-img" id="original-img" src="" alt="Original upload"/>
+    </div>
+
+    <!-- Detected glyphs -->
+    <div style="margin-top:18px">
+      <div class="card-title" style="margin-bottom:10px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        Detected Glyphs
+      </div>
+      <div class="glyph-grid" id="glyph-grid"></div>
+    </div>
+
+    <div class="glyph-div">
+      <span>𓂀</span><span>𓁹</span><span>𓃒</span><span>𓆃</span><span>𓏀</span>
+    </div>
+
+    <!-- Translation -->
+    <div class="card-title" style="margin-bottom:8px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      English Translation
+    </div>
+    <div class="translation-box" id="translation-text"></div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row"></div>
+
+    <!-- Confidence -->
+    <div class="conf-bar-wrap">
+      <span class="conf-label">Confidence</span>
+      <div class="conf-bar"><div class="conf-fill" id="conf-fill"></div></div>
+      <span class="conf-pct" id="conf-pct">—</span>
+    </div>
+
+    <!-- Actions -->
+    <div class="result-actions">
+      <button class="btn btn-ghost" id="new-btn">↩ Translate Another</button>
+      <button class="btn btn-lapis" id="dl-btn">↓ Download Report</button>
+    </div>
+  </div>
+
+  <!-- ═══ HOW IT WORKS ═══ -->
+  <div class="card" id="how-card">
+    <div class="card-title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      How It Works
+    </div>
+    <div class="steps-grid">
+      <div class="step">
+        <svg class="step-icon" viewBox="0 0 28 28" fill="none">
+          <rect x="3" y="7" width="22" height="16" rx="2" stroke="currentColor" stroke-width="1.3"/>
+          <circle cx="20" cy="14" r="3" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M3 20 L10 13 L15 18 L18 15 L25 22" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M14 5 L14 2 M14 2 L11 4 M14 2 L17 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <div class="step-num">I</div>
+        <div class="step-title">Upload</div>
+        <div class="step-desc">Photograph or upload an image of the inscription.</div>
+      </div>
+      <div class="step">
+        <svg class="step-icon" viewBox="0 0 28 28" fill="none">
+          <circle cx="14" cy="14" r="10" stroke="currentColor" stroke-width="1.3"/>
+          <circle cx="14" cy="14" r="4" fill="currentColor" opacity=".3"/>
+          <line x1="14" y1="3" x2="14" y2="7" stroke="currentColor" stroke-width="1.3"/>
+          <line x1="14" y1="21" x2="14" y2="25" stroke="currentColor" stroke-width="1.3"/>
+          <line x1="3" y1="14" x2="7" y2="14" stroke="currentColor" stroke-width="1.3"/>
+          <line x1="21" y1="14" x2="25" y2="14" stroke="currentColor" stroke-width="1.3"/>
+        </svg>
+        <div class="step-num">II</div>
+        <div class="step-title">Detect</div>
+        <div class="step-desc">YOLO model locates every glyph with bounding boxes.</div>
+      </div>
+      <div class="step">
+        <svg class="step-icon" viewBox="0 0 28 28" fill="none">
+          <path d="M4 8 L14 4 L24 8 L24 20 L14 24 L4 20 Z" stroke="currentColor" stroke-width="1.3" fill="none"/>
+          <path d="M9 14 L12 17 L20 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <div class="step-num">III</div>
+        <div class="step-title">Order</div>
+        <div class="step-desc">Glyphs are sorted row-by-row as ancient scribes wrote them.</div>
+      </div>
+      <div class="step">
+        <svg class="step-icon" viewBox="0 0 28 28" fill="none">
+          <path d="M5 8 Q14 4 23 8 L23 20 Q14 24 5 20 Z" stroke="currentColor" stroke-width="1.3" fill="none"/>
+          <line x1="9" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.2"/>
+          <line x1="9" y1="16" x2="16" y2="16" stroke="currentColor" stroke-width="1.2"/>
+        </svg>
+        <div class="step-num">IV</div>
+        <div class="step-title">Translate</div>
+        <div class="step-desc">Transformer model converts Gardiner codes to English.</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<footer>
+  <svg class="footer-gem" width="12" height="12" viewBox="0 0 12 12">
+    <polygon points="6,1 7.2,4.8 11,4.8 8,7.2 9.2,11 6,8.8 2.8,11 4,7.2 1,4.8 4.8,4.8" fill="#6a5a44"/>
+  </svg>
+  Echoes of the Past &nbsp;·&nbsp; Ancient Language Translator &nbsp;·&nbsp; © 2026
+  <svg class="footer-gem" width="12" height="12" viewBox="0 0 12 12">
+    <polygon points="6,1 7.2,4.8 11,4.8 8,7.2 9.2,11 6,8.8 2.8,11 4,7.2 1,4.8 4.8,4.8" fill="#6a5a44"/>
+  </svg>
+</footer>
+
+<script>
+/* ─── AMBIENT GLYPHS ─── */
+const GLYPHS = ['𓂀','𓁹','𓃒','𓆃','𓏀','𓆑','𓋹','𓂋','𓏏','𓅱','𓇋','𓆎','𓃀','𓇼','𓉐'];
+const cont = document.getElementById('ambient-glyphs');
+
+function spawnGlyph() {
+  const el = document.createElement('span');
+  el.className = 'ag';
+  el.textContent = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+  el.style.left  = Math.random() * 96 + '%';
+  el.style.top   = (window.scrollY + window.innerHeight * (.2 + Math.random() * .7)) + 'px';
+  el.style.animationDuration  = (14 + Math.random() * 12) + 's';
+  el.style.animationDelay     = (Math.random() * 3) + 's';
+  el.style.fontSize = (14 + Math.random() * 20) + 'px';
+  cont.appendChild(el);
+  setTimeout(() => el.remove(), 30000);
+}
+for (let i = 0; i < 10; i++) setTimeout(spawnGlyph, i * 800);
+setInterval(spawnGlyph, 2200);
+
+/* ─── STATE ─── */
+let currentBase64 = null;
+let lastResult    = null;
+let camStream     = null;
+
+/* ─── ELEMENTS ─── */
+const fileInput    = document.getElementById('file-input');
+const uploadZone   = document.getElementById('upload-zone');
+const previewArea  = document.getElementById('preview-area');
+const previewImg   = document.getElementById('preview-img');
+const previewMeta  = document.getElementById('preview-meta');
+const removeBtn    = document.getElementById('remove-btn');
+const translateBtn = document.getElementById('translate-btn');
+const errMsg       = document.getElementById('err-msg');
+const errText      = document.getElementById('err-text');
+const loadingCard  = document.getElementById('loading-card');
+const resultCard   = document.getElementById('result-card');
+const uploadCard   = document.getElementById('upload-card');
+const howCard      = document.getElementById('how-card');
+
+/* ─── CHIPS ─── */
+document.querySelectorAll('.chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+  });
+});
+
+/* ─── DRAG & DROP ─── */
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over') });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadFile(f);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]) });
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    previewImg.src = e.target.result;
+    currentBase64  = e.target.result;
+    previewMeta.textContent = file.name + ' · ' + (file.size / 1024).toFixed(1) + ' KB';
+    previewArea.classList.add('visible');
+    translateBtn.disabled = false;
+    hideError();
+  };
+  reader.readAsDataURL(file);
+}
+
+removeBtn.addEventListener('click', () => {
+  currentBase64 = null;
+  previewImg.src = '';
+  previewArea.classList.remove('visible');
+  fileInput.value = '';
+  translateBtn.disabled = true;
+});
+
+/* ─── CAMERA ─── */
+const camModal  = document.getElementById('cam-modal');
+const camVideo  = document.getElementById('camera-video');
+const camCanvas = document.getElementById('cam-canvas');
+
+document.getElementById('cam-open-btn').addEventListener('click', async () => {
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
+    camVideo.srcObject = camStream;
+    camModal.classList.add('open');
+  } catch { showError('Camera access denied or unavailable.') }
+});
+
+function closeCamera() {
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null }
+  camModal.classList.remove('open');
+}
+document.getElementById('cam-close').addEventListener('click', closeCamera);
+document.getElementById('cam-cancel').addEventListener('click', closeCamera);
+
+document.getElementById('snap-btn').addEventListener('click', () => {
+  const w = camVideo.videoWidth, h = camVideo.videoHeight;
+  camCanvas.width = w; camCanvas.height = h;
+  camCanvas.getContext('2d').drawImage(camVideo, 0, 0, w, h);
+  const dataUrl = camCanvas.toDataURL('image/jpeg', .92);
+  previewImg.src = dataUrl;
+  currentBase64  = dataUrl;
+  previewMeta.textContent = 'Camera capture · live photo';
+  previewArea.classList.add('visible');
+  translateBtn.disabled = false;
+  hideError();
+  closeCamera();
+});
+
+/* ─── IMAGE TABS ─── */
+document.querySelectorAll('.img-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.img-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.img-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+/* ─── LOADING STEPS ─── */
+const lsSteps = ['ls1','ls2','ls3','ls4'];
+let lsInterval;
+
+function startLoadingSteps() {
+  let idx = 0;
+  lsSteps.forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('active','done');
+  });
+  document.getElementById(lsSteps[0]).classList.add('active');
+  idx = 0;
+  lsInterval = setInterval(() => {
+    document.getElementById(lsSteps[idx]).classList.remove('active');
+    document.getElementById(lsSteps[idx]).classList.add('done');
+    idx++;
+    if (idx < lsSteps.length) document.getElementById(lsSteps[idx]).classList.add('active');
+  }, 1800);
+}
+function stopLoadingSteps() {
+  clearInterval(lsInterval);
+  lsSteps.forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('active'); el.classList.add('done');
+  });
+}
+
+const STATUS_PHRASES = [
+  'Sending image to server…',
+  'Running YOLO detection…',
+  'Sorting glyphs by row…',
+  'Running transformer model…',
+  'Almost done…',
+];
+
+/* ─── TRANSLATE ─── */
+translateBtn.addEventListener('click', async () => {
+  if (!currentBase64) { showError('Please upload an image first.'); return }
+  hideError();
+
+  uploadCard.style.display = 'none';
+  howCard.style.display    = 'none';
+  loadingCard.classList.add('visible');
+  resultCard.classList.remove('visible');
+
+  startLoadingSteps();
+
+  let phraseIdx = 0;
+  const statusEl = document.getElementById('loading-status');
+  statusEl.textContent = STATUS_PHRASES[0];
+  const phraseInterval = setInterval(() => {
+    phraseIdx = Math.min(phraseIdx + 1, STATUS_PHRASES.length - 1);
+    statusEl.textContent = STATUS_PHRASES[phraseIdx];
+  }, 1800);
+
+  try {
+    // Convert base64 dataURL to Blob → FormData
+    const res0  = await fetch(currentBase64);
+    const blob  = await res0.blob();
+    const ext   = blob.type === 'image/png' ? 'png' : 'jpg';
+    const form  = new FormData();
+    form.append('image', blob, 'capture.' + ext);
+
+    const response = await fetch('/translate', { method:'POST', body:form });
+    const data     = await response.json();
+
+    clearInterval(phraseInterval);
+    stopLoadingSteps();
+    loadingCard.classList.remove('visible');
+
+    if (!data.success) {
+      uploadCard.style.display = '';
+      howCard.style.display    = '';
+      showError(data.error || 'Unknown error occurred.');
+      return;
+    }
+
+    lastResult = data;
+    renderResult(data);
+
+  } catch (err) {
+    clearInterval(phraseInterval);
+    stopLoadingSteps();
+    loadingCard.classList.remove('visible');
+    uploadCard.style.display = '';
+    howCard.style.display    = '';
+    showError('Network error: ' + err.message);
+  }
+});
+
+/* ─── RENDER RESULT ─── */
+function renderResult(data) {
+  // Images
+  document.getElementById('original-img').src = data.image_url || currentBase64;
+  if (data.overlay_b64) {
+    document.getElementById('overlay-img').src = 'data:image/jpeg;base64,' + data.overlay_b64;
+    // Default to overlay tab
+    document.querySelectorAll('.img-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.img-panel').forEach(p => p.classList.remove('active'));
+    document.querySelector('[data-tab="overlay"]').classList.add('active');
+    document.getElementById('tab-overlay').classList.add('active');
+  } else {
+    // No overlay — show original
+    document.querySelector('[data-tab="original"]').click();
+    document.querySelector('[data-tab="overlay"]').style.display = 'none';
+  }
+
+  // Glyph grid
+  const grid = document.getElementById('glyph-grid');
+  grid.innerHTML = '';
+  if (data.rows && data.rows.length) {
+    data.rows.forEach((row, ri) => {
+      if (ri > 0) {
+        const sep = document.createElement('div');
+        sep.className = 'row-sep'; sep.style.width='100%'; sep.style.margin='6px 0';
+        grid.appendChild(sep);
+      }
+      row.forEach((code, ci) => {
+        const box = data.boxes ? data.boxes.find(b => b.code === code) : null;
+        const pill = document.createElement('div');
+        pill.className = 'glyph-pill';
+        pill.style.animationDelay = (ri * 4 + ci) * 0.05 + 's';
+        pill.innerHTML = `<span>${code}</span>${box ? `<span class="gconf">${box.confidence}%</span>` : ''}`;
+        grid.appendChild(pill);
+      });
+    });
+  } else if (data.codes) {
+    data.codes.forEach((code, i) => {
+      const pill = document.createElement('div');
+      pill.className = 'glyph-pill';
+      pill.style.animationDelay = i * 0.05 + 's';
+      pill.textContent = code;
+      grid.appendChild(pill);
+    });
+  }
+
+  // Translation
+  document.getElementById('translation-text').textContent = data.translation || '(no translation)';
+
+  // Stats
+  const statsRow = document.getElementById('stats-row');
+  statsRow.innerHTML = '';
+  const stats = [
+    { label:'Glyphs', val: data.glyph_count },
+    { label:'Rows',   val: data.rows ? data.rows.length : '—' },
+    { label:'Model',  val: 'YOLO + M2M100' },
+  ];
+  stats.forEach(s => {
+    const c = document.createElement('div');
+    c.className = 'stat-chip';
+    c.innerHTML = `<strong>${s.val}</strong> ${s.label}`;
+    statsRow.appendChild(c);
+  });
+
+  // Confidence (average of detected box confidences)
+  let avgConf = 85;
+  if (data.boxes && data.boxes.length) {
+    avgConf = Math.round(data.boxes.reduce((a,b) => a + b.confidence, 0) / data.boxes.length);
+  }
+  document.getElementById('conf-pct').textContent = avgConf + '%';
+  setTimeout(() => { document.getElementById('conf-fill').style.width = avgConf + '%' }, 120);
+
+  resultCard.classList.add('visible');
+}
+
+/* ─── COPY ─── */
+document.getElementById('copy-btn').addEventListener('click', () => {
+  const text = document.getElementById('translation-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+});
+
+/* ─── NEW ─── */
+document.getElementById('new-btn').addEventListener('click', () => {
+  resultCard.classList.remove('visible');
+  uploadCard.style.display = '';
+  howCard.style.display    = '';
+  document.getElementById('conf-fill').style.width = '0%';
+  // Re-show overlay tab option
+  document.querySelector('[data-tab="overlay"]').style.display = '';
+  lsSteps.forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('active','done');
+  });
+});
+
+/* ─── DOWNLOAD REPORT ─── */
+document.getElementById('dl-btn').addEventListener('click', () => {
+  if (!lastResult) return;
+  const lines = [
+    'ECHOES OF THE PAST — Translation Report',
+    '='.repeat(52),
+    '',
+    `Glyphs detected : ${lastResult.glyph_count}`,
+    `Rows            : ${lastResult.rows ? lastResult.rows.length : '—'}`,
+    `Sequence        : ${lastResult.codes.join(' ')}`,
+    '',
+    'TRANSLATION',
+    '-'.repeat(40),
+    lastResult.translation,
+    '',
+    'Generated by Echoes of the Past · © 2026',
+  ];
+  const blob = new Blob([lines.join('\n')], {type:'text/plain'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'echoes-translation.txt';
+  a.click(); URL.revokeObjectURL(url);
+});
+
+/* ─── HELPERS ─── */
+function showError(msg) {
+  errText.textContent = msg;
+  errMsg.classList.add('visible');
+}
+function hideError() { errMsg.classList.remove('visible') }
+
+if (window.location.protocol === 'file:') {
+  showError('Please run the Flask server and open http://127.0.0.1:5000 instead of opening this file directly.');
+}
+</script>
+</body>
+</html>
